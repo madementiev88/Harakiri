@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  telegramId       BigInt       @id @map("telegram_id")
+  firstName        String       @map("first_name")
+  lastName         String?      @map("last_name")
+  phone            String?
+  yclientsClientId Int?         @map("yclients_client_id")
+  pdConsent        Boolean      @default(false) @map("pd_consent")
+  pdConsentDate    DateTime?    @map("pd_consent_date")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  lastVisit        DateTime?    @map("last_visit")
+  bookings         BookingLog[]
+
+  @@map("users")
+}
+
+model BookingLog {
+  id               String   @id @default(uuid())
+  telegramId       BigInt   @map("telegram_id")
+  yclientsRecordId Int?     @map("yclients_record_id")
+  masterId         Int      @map("master_id")
+  services         String   @default("[]")
+  bookingDate      DateTime @map("booking_date")
+  bookingTime      String   @map("booking_time")
+  status           String   @default("pending")
+  totalPrice       Int      @map("total_price")
+  totalDuration    Int      @map("total_duration")
+  reminder24hSent  Boolean  @default(false) @map("reminder_24h_sent")
+  reminder2hSent   Boolean  @default(false) @map("reminder_2h_sent")
+  createdAt        DateTime @default(now()) @map("created_at")
+  user             User     @relation(fields: [telegramId], references: [telegramId])
+
+  @@map("bookings_log")
+}

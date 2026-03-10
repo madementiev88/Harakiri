@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-harakiri-red: #C0392B;
+  --color-harakiri-bg: #1A1A1A;
+  --color-harakiri-card: #2C2C2C;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter', 'SF Pro Text', system-ui, sans-serif;
+  background-color: var(--color-harakiri-bg);
+  color: #ffffff;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #2C2C2C 25%, #3a3a3a 50%, #2C2C2C 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* Smooth transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 2px;
+}
+
+/* Page transitions */
+.page-transition {
+  will-change: transform, opacity;
+}
+
+.page-active {
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 200ms ease-out, opacity 150ms ease-out;
+}
+
+.page-enter-right {
+  transform: translateX(30px);
+  opacity: 0;
+}
+
+.page-enter-left {
+  transform: translateX(-30px);
+  opacity: 0;
+}
+
+.page-exit-left {
+  transform: translateX(-30px);
+  opacity: 0;
+  transition: transform 150ms ease-in, opacity 100ms ease-in;
+}
+
+.page-exit-right {
+  transform: translateX(30px);
+  opacity: 0;
+  transition: transform 150ms ease-in, opacity 100ms ease-in;
+}
+
+/* Toast animations */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(100%); opacity: 0; }
+}
+
+.toast-enter {
+  animation: slideUp 200ms ease-out forwards;
+}
+
+.toast-exit {
+  animation: slideDown 200ms ease-in forwards;
+}
+
+/* Cart slide animation */
+@keyframes cartSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.cart-enter {
+  animation: cartSlideUp 250ms ease-out forwards;
+}
+
+/* Smooth checkbox transition */
+.checkbox-animate {
+  transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+}
+
+.checkbox-animate:active {
+  transform: scale(0.9);
+}
+
+/* Pull to refresh indicator */
+.pull-indicator {
+  transition: transform 200ms ease-out;
+}
+
+/* Better focus styles */
+input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.3);
+}
+
+/* Hide scrollbar but allow scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
