@@ -8,12 +8,14 @@ export async function yclientsRoutes(app: FastifyInstance) {
   // GET /api/masters
   app.get('/api/masters', async () => {
     const rawMasters = await yclients.getMasters();
-    const masters = rawMasters.map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      photo: m.avatar || m.avatar_big || '',
-      specialization: m.specialization || '',
-    }));
+    const masters = rawMasters
+      .filter((m: any) => m.bookable && !m.fired && !m.hidden)
+      .map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        photo: m.avatar || m.avatar_big || '',
+        specialization: m.specialization || '',
+      }));
     return { masters };
   });
 
@@ -27,7 +29,7 @@ export async function yclientsRoutes(app: FastifyInstance) {
       yclients.getServices(masterId),
     ]);
 
-    const master = rawMasters.find((m: any) => m.id === masterId);
+    const master = rawMasters.find((m: any) => m.id === masterId && m.bookable && !m.fired && !m.hidden);
     if (!master) {
       return reply.status(404).send({
         error: { code: 'MASTER_UNAVAILABLE', message: 'Master not found' },
@@ -81,7 +83,7 @@ export async function yclientsRoutes(app: FastifyInstance) {
       // "Any master" — get slots from all masters, merge and deduplicate
       const rawMasters = await yclients.getMasters();
       const allSlots = await Promise.all(
-        rawMasters.map((m: any) =>
+        rawMasters.filter((m: any) => m.bookable && !m.fired && !m.hidden).map((m: any) =>
           yclients.getAvailableSlots(m.id, query.date, serviceIds).catch(() => [])
         )
       );

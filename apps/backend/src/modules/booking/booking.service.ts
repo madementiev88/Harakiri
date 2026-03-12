@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js';
 import { createModuleLogger } from '../../lib/logger.js';
 import * as yclients from '../yclients/yclients.service.js';
 import { sendBookingConfirmation, sendCancellationNotice } from '../notifications/notification.service.js';
+import { nowInTz, bookingToDate } from '../../lib/timezone.js';
 
 const log = createModuleLogger('booking');
 
@@ -49,6 +50,7 @@ export async function createBooking(params: CreateBookingParams) {
     staffId: params.masterId,
     serviceIds: params.serviceIds,
     datetime,
+    totalDuration,
     comment: params.comment,
   });
 
@@ -137,9 +139,9 @@ export async function cancelBooking(bookingId: string, telegramId: number) {
   }
 
   // Check 2-hour rule
-  const bookingDateTime = new Date(`${booking.bookingDate.toISOString().slice(0, 10)}T${booking.bookingTime}:00`);
+  const bookingDateTime = bookingToDate(booking.bookingDate, booking.bookingTime);
   const twoHoursBefore = new Date(bookingDateTime.getTime() - 2 * 60 * 60 * 1000);
-  if (new Date() > twoHoursBefore) {
+  if (nowInTz() > twoHoursBefore) {
     throw new Error('Cannot cancel less than 2 hours before the appointment');
   }
 

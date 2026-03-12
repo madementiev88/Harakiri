@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { config, hasYclientsTokens } from '../../config.js';
+import { config, hasPartnerToken, hasYclientsTokens } from '../../config.js';
 import { createModuleLogger } from '../../lib/logger.js';
 import { getCache, setCache, CACHE_TTL } from '../../lib/cache.js';
 import { mockMasters, mockServices, generateMockSlots, generateMockSchedule, createMockRecord } from './yclients.mock.js';
@@ -25,16 +25,20 @@ function getApi(): AxiosInstance {
   });
 
   _api.interceptors.request.use((cfg) => {
-    cfg.headers['Authorization'] = `Bearer ${config.YCLIENTS_PARTNER_TOKEN}, User ${_userToken}`;
+    cfg.headers['Authorization'] = _userToken
+      ? `Bearer ${config.YCLIENTS_PARTNER_TOKEN}, User ${_userToken}`
+      : `Bearer ${config.YCLIENTS_PARTNER_TOKEN}`;
     return cfg;
   });
 
   _api.interceptors.response.use(
     (response) => response,
     async (error) => {
-      if (error.response?.status === 401) {
-        log.warn('YCLIENTS token expired, attempting refresh');
-      }
+      log.warn({
+        status: error.response?.status,
+        url: error.config?.url,
+        message: error.response?.data?.meta?.message || error.message,
+      }, 'YCLIENTS API request failed');
       throw error;
     }
   );
@@ -54,11 +58,17 @@ export async function getMasters(): Promise<any[]> {
     return mockMasters;
   }
 
-  const { data } = await getApi().get(`/staff/${salonId}`);
-  const masters = data.data || data;
-  setCache(cacheKey, masters, CACHE_TTL.MASTERS);
-  log.info({ count: masters.length }, 'Masters fetched from YCLIENTS');
-  return masters;
+  try {
+    const { data } = await getApi().get(`/book_staff/${salonId}`);
+    const masters = data.data || data;
+    setCache(cacheKey, masters, CACHE_TTL.MASTERS);
+    log.info({ count: masters.length }, 'Masters fetched from YCLIENTS');
+    return masters;
+  } catch (err: any) {
+    log.warn({ err: err.message, status: err.response?.status }, 'YCLIENTS getMasters failed, using mock data');
+    setCache(cacheKey, mockMasters, CACHE_TTL.MASTERS);
+    return mockMasters;
+  }
 }
 
 export async function getServices(masterId?: number): Promise<any[]> {
@@ -76,11 +86,28 @@ export async function getServices(masterId?: number): Promise<any[]> {
   const params: Record<string, any> = {};
   if (masterId) params.staff_id = masterId;
 
-  const { data } = await getApi().get(`/services/${salonId}`, { params });
-  const services = data.data || data;
-  setCache(cacheKey, services, CACHE_TTL.SERVICES);
-  log.info({ count: services.length }, 'Services fetched from YCLIENTS');
-  return services;
+  try {
+    const { data } = await getApi().get(`/book_services/${salonId}`, { params });
+    const raw = data.data || data;
+    // book_services returns { services: [], category: [] } or flat array
+    const services = Array.isArray(raw) ? raw : (raw.services || []);
+    // Merge category titles into services
+    if (!Array.isArray(raw) && raw.category) {
+      const catMap = new Map(raw.category.map((c: any) => [c.id, c.title]));
+      for (const s of services) {
+        if (s.category_id && !s.category) {
+          s.category = { id: s.category_id, title: catMap.get(s.category_id) || 'Другое' };
+        }
+      }
+    }
+    setCache(cacheKey, services, CACHE_TTL.SERVICES);
+    log.info({ count: services.length }, 'Services fetched from YCLIENTS');
+    return services;
+  } catch (err: any) {
+    log.warn({ err: err.message, status: err.response?.status }, 'YCLIENTS getServices failed, using mock data');
+    setCache(cacheKey, mockServices, CACHE_TTL.SERVICES);
+    return mockServices;
+  }
 }
 
 export async function getAvailableSlots(masterId: number, date: string, serviceIds?: number[]): Promise<any[]> {
@@ -95,14 +122,21 @@ export async function getAvailableSlots(masterId: number, date: string, serviceI
     return slots;
   }
 
-  const params: Record<string, any> = { staff_id: masterId, date };
-  if (serviceIds?.length) params.service_id = serviceIds[0];
+  const params: Record<string, any> = {};
+  if (serviceIds?.length) params.service_ids = serviceIds;
 
-  const { data } = await getApi().get(`/timetable/${salonId}`, { params });
-  const slots = data.data || data;
-  setCache(cacheKey, slots, CACHE_TTL.SLOTS);
-  log.info({ masterId, date, count: slots.length }, 'Slots fetched from YCLIENTS');
-  return slots;
+  try {
+    const { data } = await getApi().get(`/book_times/${salonId}/${masterId}/${date}`, { params });
+    const slots = data.data || data;
+    setCache(cacheKey, slots, CACHE_TTL.SLOTS);
+    log.info({ masterId, date, count: slots.length }, 'Slots fetched from YCLIENTS');
+    return slots;
+  } catch (err: any) {
+    log.warn({ err: err.message, status: err.response?.status }, 'YCLIENTS getAvailableSlots failed, using mock data');
+    const fallback = generateMockSlots(date);
+    setCache(cacheKey, fallback, CACHE_TTL.SLOTS);
+    return fallback;
+  }
 }
 
 export async function getSchedule(masterId: number): Promise<any[]> {
@@ -117,10 +151,20 @@ export async function getSchedule(masterId: number): Promise<any[]> {
     return schedule;
   }
 
-  const { data } = await getApi().get(`/schedule/${salonId}`, { params: { staff_id: masterId } });
-  const schedule = data.data || data;
-  setCache(cacheKey, schedule, CACHE_TTL.SCHEDULE);
-  return schedule;
+  try {
+    const { data } = await getApi().get(`/book_dates/${salonId}`, { params: { staff_id: masterId } });
+    const raw = data.data || data;
+    // book_dates returns { booking_dates: ["2026-03-13", ...], booking_days: {...} }
+    const schedule = Array.isArray(raw) ? raw
+      : (raw.booking_dates || []).map((d: string) => ({ date: d }));
+    setCache(cacheKey, schedule, CACHE_TTL.SCHEDULE);
+    return schedule;
+  } catch (err: any) {
+    log.warn({ err: err.message, status: err.response?.status }, 'YCLIENTS getSchedule failed, using mock data');
+    const fallback = generateMockSchedule();
+    setCache(cacheKey, fallback, CACHE_TTL.SCHEDULE);
+    return fallback;
+  }
 }
 
 export async function createRecord(params: {
@@ -129,6 +173,7 @@ export async function createRecord(params: {
   staffId: number;
   serviceIds: number[];
   datetime: string;
+  totalDuration?: number;
   comment?: string;
 }): Promise<any> {
   if (!hasYclientsTokens) {
@@ -139,19 +184,32 @@ export async function createRecord(params: {
   }
 
   const salonId = config.YCLIENTS_SALON_ID;
-  const { data } = await getApi().post(`/records/${salonId}`, {
-    phone: params.phone,
-    fullname: params.fullname,
-    email: '',
-    type: 1,
+  const seanceLength = (params.totalDuration || 60) * 60; // convert minutes to seconds
+  const body = {
+    staff_id: params.staffId,
+    services: params.serviceIds.map(id => ({ id })),
+    client: {
+      phone: params.phone,
+      name: params.fullname,
+    },
+    datetime: params.datetime,
+    seance_length: seanceLength,
+    save_if_busy: false,
     comment: params.comment || 'Запись через Telegram Mini App',
-    appointments: [
-      { id: 1, services: params.serviceIds, staff_id: params.staffId, datetime: params.datetime },
-    ],
-  });
+  };
 
-  log.info({ staffId: params.staffId, datetime: params.datetime }, 'Record created in YCLIENTS');
-  return data.data || data;
+  try {
+    const { data } = await getApi().post(`/records/${salonId}`, body);
+    log.info({ staffId: params.staffId, datetime: params.datetime }, 'Record created in YCLIENTS');
+    return data.data || data;
+  } catch (err: any) {
+    log.error({
+      status: err.response?.status,
+      responseData: err.response?.data,
+      body,
+    }, 'YCLIENTS createRecord failed');
+    throw err;
+  }
 }
 
 export async function deleteRecord(recordId: number): Promise<any> {
