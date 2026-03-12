@@ -64,7 +64,7 @@ export default function App() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="text-3xl font-bold font-display mb-2">HARAKIRI</div>
+          <div className="text-3xl font-bold font-display mb-2">ХАРАКИРИ</div>
           <div className="skeleton w-32 h-3 mx-auto mt-4" />
         </div>
       </div>

@@ -33,7 +33,7 @@ export async function createBooking(params: CreateBookingParams) {
       serviceId: s.id,
       name: s.title,
       price: s.price_min || s.price,
-      duration: s.duration || 60,
+      duration: s.seance_length ? Math.round(s.seance_length / 60) : (s.duration || 60),
     }));
 
   const totalPrice = selectedServices.reduce((sum: number, s: any) => sum + s.price, 0);

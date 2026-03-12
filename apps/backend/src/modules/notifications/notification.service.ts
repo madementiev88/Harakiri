@@ -29,8 +29,8 @@ export function initBot(): Bot {
 
   bot.command('start', async (ctx) => {
     const text = isPublicUrl
-      ? '✂️ Добро пожаловать в HARAKIRI BARBERSHOP!\n\nНажмите кнопку ниже, чтобы записаться к мастеру.'
-      : '✂️ Добро пожаловать в HARAKIRI BARBERSHOP!\n\nБот работает в dev-режиме. Откройте Mini App по ссылке:\n' + config.MINIAPP_URL;
+      ? '✂️ Добро пожаловать в Харакири Барбершоп!\n\nНажмите кнопку ниже, чтобы записаться к мастеру.'
+      : '✂️ Добро пожаловать в Харакири Барбершоп!\n\nБот работает в dev-режиме. Откройте Mini App по ссылке:\n' + config.MINIAPP_URL;
     await ctx.reply(text, webAppMarkup());
   });
 
@@ -43,7 +43,7 @@ export function initBot(): Bot {
 
   bot.command('help', async (ctx) => {
     await ctx.reply(
-      '✂️ HARAKIRI BARBERSHOP\n\n' +
+      '✂️ Харакири Барбершоп\n\n' +
       'Доступные команды:\n' +
       '/start — Записаться к мастеру\n' +
       '/mybookings — Мои записи\n' +
@@ -68,7 +68,7 @@ export async function sendBookingConfirmation(telegramId: number, booking: {
   if (!bot) return;
 
   const message =
-    `✂️ HARAKIRI BARBERSHOP\n\n` +
+    `✂️ Харакири Барбершоп\n\n` +
     `✅ Запись подтверждена!\n\n` +
     `👤 Мастер: ${booking.masterName}\n` +
     `💈 Услуги: ${booking.services}\n` +
@@ -95,7 +95,7 @@ export async function sendReminder(telegramId: number, booking: {
   const timeLabel = booking.hoursLeft === 24 ? 'завтра' : 'через 2 часа';
 
   const message =
-    `✂️ HARAKIRI BARBERSHOP\n\n` +
+    `✂️ Харакири Барбершоп\n\n` +
     `⏰ Напоминание: ${timeLabel} у вас запись!\n\n` +
     `👤 Мастер: ${booking.masterName}\n` +
     `💈 Услуги: ${booking.services}\n` +
@@ -117,7 +117,7 @@ export async function sendCancellationNotice(telegramId: number, booking: {
   if (!bot) return;
 
   const message =
-    `✂️ HARAKIRI BARBERSHOP\n\n` +
+    `✂️ Харакири Барбершоп\n\n` +
     `❌ Запись отменена\n\n` +
     `👤 Мастер: ${booking.masterName}\n` +
     `📅 Была: ${booking.date}, ${booking.time}\n\n` +

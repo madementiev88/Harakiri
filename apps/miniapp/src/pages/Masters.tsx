@@ -31,7 +31,7 @@ export default function MastersPage() {
     <div className="p-4 pb-20">
       {/* Header */}
       <div className="text-center mb-6 pt-2">
-        <h1 className="text-2xl font-bold font-display tracking-wide">HARAKIRI</h1>
+        <h1 className="text-2xl font-bold font-display tracking-wide">ХАРАКИРИ</h1>
         <p className="text-harakiri-gray text-sm mt-1">Выберите мастера</p>
       </div>
 

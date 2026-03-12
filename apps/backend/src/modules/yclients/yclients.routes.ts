@@ -63,7 +63,7 @@ export async function yclientsRoutes(app: FastifyInstance) {
         id: s.id,
         name: s.title,
         price: s.price_min || s.price,
-        duration: s.duration || 60,
+        duration: getServiceDuration(s),
         categoryId: catId,
       });
     }
@@ -114,7 +114,7 @@ export async function yclientsRoutes(app: FastifyInstance) {
         const allServices = await yclients.getServices(masterId > 0 ? masterId : undefined);
         totalDuration = allServices
           .filter((s: any) => serviceIds.includes(s.id))
-          .reduce((sum: number, s: any) => sum + (s.duration || 60), 0);
+          .reduce((sum: number, s: any) => sum + getServiceDuration(s), 0);
       } catch {
         totalDuration = serviceIds.length * 30;
       }
@@ -159,12 +159,19 @@ export async function yclientsRoutes(app: FastifyInstance) {
   });
 }
 
+/** Extract duration in minutes from YCLIENTS service (seance_length is in seconds) */
+function getServiceDuration(s: any): number {
+  if (s.seance_length) return Math.round(s.seance_length / 60);
+  if (s.duration) return s.duration;
+  return 60;
+}
+
 function mapServices(rawServices: any[]) {
   return rawServices.map((s: any) => ({
     id: s.id,
     name: s.title,
     price: s.price_min || s.price,
-    duration: s.duration || 60,
+    duration: getServiceDuration(s),
     categoryId: s.category_id || 0,
   }));
 }
