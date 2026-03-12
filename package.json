@@ -6,12 +6,14 @@
     "packages/*"
   ],
   "scripts": {
+    "dev:db": "docker compose up -d postgres",
     "dev": "npm run dev --workspace=apps/backend & npm run dev --workspace=apps/miniapp",
     "dev:backend": "npm run dev --workspace=apps/backend",
     "dev:miniapp": "npm run dev --workspace=apps/miniapp",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
     "db:migrate": "npm run db:migrate --workspace=apps/backend",
+    "db:deploy": "npm run db:deploy --workspace=apps/backend",
     "db:generate": "npm run db:generate --workspace=apps/backend"
   }
 }

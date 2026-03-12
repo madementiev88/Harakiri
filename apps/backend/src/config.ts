@@ -19,5 +19,6 @@ export const config = envSchema.parse(process.env);
 export type Config = z.infer<typeof envSchema>;
 
 export const isDev = config.NODE_ENV === 'development';
-export const hasYclientsTokens = !!config.YCLIENTS_PARTNER_TOKEN && !!config.YCLIENTS_USER_TOKEN;
+export const hasPartnerToken = !!config.YCLIENTS_PARTNER_TOKEN;
+export const hasYclientsTokens = hasPartnerToken && !!config.YCLIENTS_USER_TOKEN;
 export const hasBotToken = !!config.BOT_TOKEN;

@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { prisma } from '../lib/prisma.js';
 import { createModuleLogger } from '../lib/logger.js';
+import { nowInTz, bookingToDate } from '../lib/timezone.js';
 
 const log = createModuleLogger('jobs:complete-bookings');
 
@@ -8,7 +9,7 @@ export function startCompleteBookingsJob() {
   // Every 15 minutes — move confirmed bookings to completed
   cron.schedule('*/15 * * * *', async () => {
     try {
-      const now = new Date();
+      const now = nowInTz();
 
       // Find confirmed bookings where the appointment time + duration has passed
       const bookings = await prisma.bookingLog.findMany({
@@ -23,10 +24,7 @@ export function startCompleteBookingsJob() {
       let completedCount = 0;
 
       for (const booking of bookings) {
-        const dateStr = booking.bookingDate.toISOString().slice(0, 10);
-        const bookingEnd = new Date(
-          `${dateStr}T${booking.bookingTime}:00`
-        );
+        const bookingEnd = bookingToDate(booking.bookingDate, booking.bookingTime);
         bookingEnd.setMinutes(bookingEnd.getMinutes() + booking.totalDuration);
 
         if (now > bookingEnd) {

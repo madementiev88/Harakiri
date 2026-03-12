@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -27,7 +27,7 @@ model BookingLog {
   telegramId       BigInt   @map("telegram_id")
   yclientsRecordId Int?     @map("yclients_record_id")
   masterId         Int      @map("master_id")
-  services         String   @default("[]")
+  services         String
   bookingDate      DateTime @map("booking_date")
   bookingTime      String   @map("booking_time")
   status           String   @default("pending")
@@ -38,5 +38,8 @@ model BookingLog {
   createdAt        DateTime @default(now()) @map("created_at")
   user             User     @relation(fields: [telegramId], references: [telegramId])
 
+  @@index([telegramId])
+  @@index([status, bookingDate])
+  @@index([yclientsRecordId])
   @@map("bookings_log")
 }

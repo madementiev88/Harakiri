@@ -7,7 +7,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
-import { config, hasBotToken, hasYclientsTokens } from './config.js';
+import { config, hasBotToken, hasPartnerToken, hasYclientsTokens } from './config.js';
 import { createModuleLogger } from './lib/logger.js';
 import { traceMiddleware } from './middleware/trace.js';
 import { errorHandler } from './middleware/error-handler.js';
@@ -56,7 +56,7 @@ async function bootstrap() {
   app.get('/health', async () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    yclients: hasYclientsTokens ? 'connected' : 'mock',
+    yclients: hasYclientsTokens ? 'full' : hasPartnerToken ? 'read-only' : 'mock',
     bot: hasBotToken ? 'connected' : 'disabled',
   }));
 
@@ -85,7 +85,8 @@ async function bootstrap() {
   // Start server
   const port = parseInt(config.PORT, 10);
   await app.listen({ port, host: '0.0.0.0' });
-  log.info({ port }, `Server started (YCLIENTS: ${hasYclientsTokens ? 'live' : 'mock'}, Bot: ${hasBotToken ? 'active' : 'disabled'})`);
+  const ycStatus = hasYclientsTokens ? 'full' : hasPartnerToken ? 'read-only' : 'mock';
+  log.info({ port }, `Server started (YCLIENTS: ${ycStatus}, Bot: ${hasBotToken ? 'active' : 'disabled'})`);
 }
 
 bootstrap().catch((err) => {

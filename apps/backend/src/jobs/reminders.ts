@@ -2,41 +2,45 @@ import cron from 'node-cron';
 import { prisma } from '../lib/prisma.js';
 import { createModuleLogger } from '../lib/logger.js';
 import { sendReminder } from '../modules/notifications/notification.service.js';
+import { nowInTz, toDateStringTz, bookingToDate } from '../lib/timezone.js';
 
 const log = createModuleLogger('jobs:reminders');
+
+function parseServices(services: unknown): string {
+  const arr = typeof services === 'string' ? JSON.parse(services) : services as any[];
+  return arr.map((s: any) => s.name).join(' + ');
+}
 
 export function startReminderJobs() {
   // Every 5 minutes — check for 24h reminders
   cron.schedule('*/5 * * * *', async () => {
     try {
-      const now = new Date();
+      const now = nowInTz();
+      const todayStr = toDateStringTz(now);
       const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const in24hStr = toDateStringTz(in24h);
 
       const bookings = await prisma.bookingLog.findMany({
         where: {
           status: { in: ['pending', 'confirmed'] },
           reminder24hSent: false,
           bookingDate: {
-            gte: new Date(now.toISOString().slice(0, 10)),
-            lte: new Date(in24h.toISOString().slice(0, 10)),
+            gte: new Date(todayStr),
+            lte: new Date(in24hStr),
           },
         },
         include: { user: true },
       });
 
       for (const booking of bookings) {
-        const bookingDateTime = new Date(
-          `${booking.bookingDate.toISOString().slice(0, 10)}T${booking.bookingTime}:00`
-        );
-        const diff = bookingDateTime.getTime() - now.getTime();
-        const hoursUntil = diff / (1000 * 60 * 60);
+        const bookingDateTime = bookingToDate(booking.bookingDate, booking.bookingTime);
+        const hoursUntil = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
         if (hoursUntil <= 24 && hoursUntil > 2) {
-          const services = (typeof booking.services === 'string' ? JSON.parse(booking.services) : booking.services as any[]).map((s: any) => s.name).join(' + ');
           await sendReminder(Number(booking.telegramId), {
             masterName: `\u041c\u0430\u0441\u0442\u0435\u0440 #${booking.masterId}`,
-            services,
-            date: booking.bookingDate.toISOString().slice(0, 10),
+            services: parseServices(booking.services),
+            date: toDateStringTz(booking.bookingDate),
             time: booking.bookingTime,
             hoursLeft: 24,
           });
@@ -57,30 +61,27 @@ export function startReminderJobs() {
   // Every 5 minutes — check for 2h reminders
   cron.schedule('*/5 * * * *', async () => {
     try {
-      const now = new Date();
+      const now = nowInTz();
+      const todayStr = toDateStringTz(now);
 
       const bookings = await prisma.bookingLog.findMany({
         where: {
           status: { in: ['pending', 'confirmed'] },
           reminder2hSent: false,
-          bookingDate: new Date(now.toISOString().slice(0, 10)),
+          bookingDate: new Date(todayStr),
         },
         include: { user: true },
       });
 
       for (const booking of bookings) {
-        const bookingDateTime = new Date(
-          `${booking.bookingDate.toISOString().slice(0, 10)}T${booking.bookingTime}:00`
-        );
-        const diff = bookingDateTime.getTime() - now.getTime();
-        const hoursUntil = diff / (1000 * 60 * 60);
+        const bookingDateTime = bookingToDate(booking.bookingDate, booking.bookingTime);
+        const hoursUntil = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
         if (hoursUntil <= 2 && hoursUntil > 0) {
-          const services = (typeof booking.services === 'string' ? JSON.parse(booking.services) : booking.services as any[]).map((s: any) => s.name).join(' + ');
           await sendReminder(Number(booking.telegramId), {
             masterName: `\u041c\u0430\u0441\u0442\u0435\u0440 #${booking.masterId}`,
-            services,
-            date: booking.bookingDate.toISOString().slice(0, 10),
+            services: parseServices(booking.services),
+            date: toDateStringTz(booking.bookingDate),
             time: booking.bookingTime,
             hoursLeft: 2,
           });

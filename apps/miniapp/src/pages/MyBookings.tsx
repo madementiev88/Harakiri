@@ -44,12 +44,13 @@ export default function MyBookingsPage() {
     },
   });
 
-  const handleCancel = async (booking: Booking) => {
-    const confirmed = await showConfirm('Вы уверены, что хотите отменить запись?');
-    if (confirmed) {
-      haptic('heavy');
-      cancelMutation.mutate(booking.id);
-    }
+  const handleCancel = (booking: Booking) => {
+    showConfirm('Вы уверены, что хотите отменить запись?').then((confirmed) => {
+      if (confirmed) {
+        haptic('heavy');
+        cancelMutation.mutate(booking.id);
+      }
+    });
   };
 
   const handleReschedule = (booking: Booking) => {

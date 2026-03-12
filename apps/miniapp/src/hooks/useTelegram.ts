@@ -80,7 +80,11 @@ export function useTelegram() {
         resolve(window.confirm(message));
         return;
       }
-      tg.showConfirm(message, (confirmed: boolean) => resolve(confirmed));
+      try {
+        tg.showConfirm(message, (confirmed: boolean) => resolve(confirmed));
+      } catch {
+        resolve(window.confirm(message));
+      }
     });
   }, []);
 
