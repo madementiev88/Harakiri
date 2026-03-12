@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js';
 import { createModuleLogger } from '../../lib/logger.js';
 import * as yclients from '../yclients/yclients.service.js';
+import { getServiceDuration } from '../yclients/service-durations.js';
 import { sendBookingConfirmation, sendCancellationNotice } from '../notifications/notification.service.js';
 import { nowInTz, bookingToDate } from '../../lib/timezone.js';
 
@@ -33,7 +34,7 @@ export async function createBooking(params: CreateBookingParams) {
       serviceId: s.id,
       name: s.title,
       price: s.price_min || s.price,
-      duration: s.seance_length ? Math.round(s.seance_length / 60) : (s.duration || 60),
+      duration: getServiceDuration(s),
     }));
 
   const totalPrice = selectedServices.reduce((sum: number, s: any) => sum + s.price, 0);

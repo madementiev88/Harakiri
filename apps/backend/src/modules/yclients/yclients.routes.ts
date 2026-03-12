@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { authMiddleware } from '../../middleware/auth.js';
 import * as yclients from './yclients.service.js';
+import { getServiceDuration } from './service-durations.js';
 
 export async function yclientsRoutes(app: FastifyInstance) {
   app.addHook('onRequest', authMiddleware);
@@ -157,13 +158,6 @@ export async function yclientsRoutes(app: FastifyInstance) {
 
     return { dates };
   });
-}
-
-/** Extract duration in minutes from YCLIENTS service (seance_length is in seconds) */
-function getServiceDuration(s: any): number {
-  if (s.seance_length) return Math.round(s.seance_length / 60);
-  if (s.duration) return s.duration;
-  return 60;
 }
 
 function mapServices(rawServices: any[]) {
