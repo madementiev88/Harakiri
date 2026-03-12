@@ -21,7 +21,7 @@ services:
       - apps/backend/.env
     environment:
       DATABASE_URL: postgresql://harakiri:${POSTGRES_PASSWORD:-harakiri}@postgres:5432/harakiri
-      TZ: Europe/Moscow
+      TZ: Asia/Yekaterinburg
     depends_on:
       postgres:
         condition: service_healthy
