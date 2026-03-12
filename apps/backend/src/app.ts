@@ -13,6 +13,7 @@ import { traceMiddleware } from './middleware/trace.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { yclientsRoutes } from './modules/yclients/yclients.routes.js';
+import * as yclientsService from './modules/yclients/yclients.service.js';
 import { bookingRoutes } from './modules/booking/booking.routes.js';
 import { initBot } from './modules/notifications/notification.service.js';
 import { startReminderJobs } from './jobs/reminders.js';
@@ -51,6 +52,21 @@ async function bootstrap() {
   await app.register(authRoutes);
   await app.register(yclientsRoutes);
   await app.register(bookingRoutes);
+
+  // TEMP: debug endpoint to inspect raw YCLIENTS service data — remove after fixing durations
+  app.get('/api/debug/raw-services', async () => {
+    const rawServices = await yclientsService.getServices();
+    return rawServices.map((s: any) => ({
+      id: s.id,
+      title: s.title,
+      seance_length: s.seance_length,
+      duration: s.duration,
+      price_min: s.price_min,
+      price: s.price,
+      category_id: s.category_id,
+      _allKeys: Object.keys(s),
+    }));
+  });
 
   // Health check
   app.get('/health', async () => ({
