@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { authMiddleware } from '../../middleware/auth.js';
 import * as yclients from './yclients.service.js';
 import { getServiceDuration } from './service-durations.js';
+import { getMasterPhoto } from './master-photos.js';
 
 export async function yclientsRoutes(app: FastifyInstance) {
   app.addHook('onRequest', authMiddleware);
@@ -14,7 +15,7 @@ export async function yclientsRoutes(app: FastifyInstance) {
       .map((m: any) => ({
         id: m.id,
         name: m.name,
-        photo: m.avatar || m.avatar_big || '',
+        photo: getMasterPhoto(m.id) ? `/masters/${getMasterPhoto(m.id)}` : (m.avatar || m.avatar_big || ''),
         specialization: m.specialization || '',
       }));
     return { masters };
@@ -40,7 +41,7 @@ export async function yclientsRoutes(app: FastifyInstance) {
     const services = mapServices(rawServices);
 
     return {
-      master: { id: master.id, name: master.name, photo: master.avatar || '', specialization: master.specialization || '' },
+      master: { id: master.id, name: master.name, photo: getMasterPhoto(master.id) ? `/masters/${getMasterPhoto(master.id)}` : (master.avatar || ''), specialization: master.specialization || '' },
       services,
     };
   });
