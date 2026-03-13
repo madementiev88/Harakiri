@@ -15,6 +15,7 @@ import { authRoutes } from './modules/auth/auth.routes.js';
 import { yclientsRoutes } from './modules/yclients/yclients.routes.js';
 import { bookingRoutes } from './modules/booking/booking.routes.js';
 import { initBot } from './modules/notifications/notification.service.js';
+import * as yclientsService from './modules/yclients/yclients.service.js';
 import { startReminderJobs } from './jobs/reminders.js';
 import { startSyncBookingsJob } from './jobs/sync-bookings.js';
 import { startCompleteBookingsJob } from './jobs/complete-bookings.js';
@@ -51,6 +52,20 @@ async function bootstrap() {
   await app.register(authRoutes);
   await app.register(yclientsRoutes);
   await app.register(bookingRoutes);
+
+  // TEMP: debug endpoint to get master IDs — remove after photo setup
+  app.get('/api/debug/masters', async () => {
+    const rawMasters = await yclientsService.getMasters();
+    return rawMasters
+      .filter((m: any) => m.bookable && !m.fired && !m.hidden)
+      .map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        avatar: m.avatar || '',
+        avatar_big: m.avatar_big || '',
+        specialization: m.specialization || '',
+      }));
+  });
 
   // Health check
   app.get('/health', async () => ({
