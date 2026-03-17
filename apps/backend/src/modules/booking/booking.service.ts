@@ -16,6 +16,7 @@ interface CreateBookingParams {
   phone?: string;
   comment?: string;
   pdConsent?: boolean;
+  rescheduleBookingId?: string;
 }
 
 export async function createBooking(params: CreateBookingParams) {
@@ -90,6 +91,27 @@ export async function createBooking(params: CreateBookingParams) {
     masterId: params.masterId,
     yclientsRecordId: yclientsRecord.id,
   }, 'Booking created');
+
+  // Cancel old booking when rescheduling (skip 2-hour rule for reschedules)
+  if (params.rescheduleBookingId) {
+    try {
+      const oldBooking = await prisma.bookingLog.findFirst({
+        where: { id: params.rescheduleBookingId, telegramId: BigInt(params.telegramId) },
+      });
+      if (oldBooking && oldBooking.status !== 'cancelled' && oldBooking.status !== 'completed') {
+        if (oldBooking.yclientsRecordId) {
+          await yclients.deleteRecord(oldBooking.yclientsRecordId);
+        }
+        await prisma.bookingLog.update({
+          where: { id: params.rescheduleBookingId },
+          data: { status: 'cancelled' },
+        });
+        log.info({ oldBookingId: params.rescheduleBookingId, newBookingId: booking.id }, 'Old booking cancelled (reschedule)');
+      }
+    } catch (err) {
+      log.error({ err, rescheduleBookingId: params.rescheduleBookingId }, 'Failed to cancel old booking during reschedule');
+    }
+  }
 
   // Send confirmation notification (non-blocking)
   let masterName = `Мастер #${params.masterId}`;

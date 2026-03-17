@@ -88,6 +88,7 @@ export interface CreateBookingRequest {
   time: string; // "HH:MM"
   phone?: string;
   comment?: string;
+  rescheduleBookingId?: string;
 }
 
 export interface CreateBookingResponse {

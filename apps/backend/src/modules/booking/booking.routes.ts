@@ -12,6 +12,7 @@ const createBookingSchema = z.object({
   phone: z.string().optional(),
   comment: z.string().optional(),
   pdConsent: z.boolean().optional(),
+  rescheduleBookingId: z.string().optional(),
 });
 
 export async function bookingRoutes(app: FastifyInstance) {

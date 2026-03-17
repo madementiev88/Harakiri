@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { createBooking, cancelBooking } from '../api/queries';
+import { createBooking } from '../api/queries';
 import { useBookingStore } from '../store/booking';
 import { useTelegram } from '../hooks/useTelegram';
 import PhoneInput from '../components/PhoneInput';
@@ -23,14 +23,8 @@ export default function ConfirmPage() {
 
   const mutation = useMutation({
     mutationFn: createBooking,
-    onSuccess: async () => {
-      // Cancel old booking when rescheduling
+    onSuccess: () => {
       if (rescheduleBookingId) {
-        try {
-          await cancelBooking(rescheduleBookingId);
-        } catch (err) {
-          // Old booking cancel failed, but new one is created
-        }
         setRescheduleBookingId(null);
       }
       hapticSuccess();
@@ -83,6 +77,7 @@ export default function ConfirmPage() {
       date: selectedDate,
       time: selectedTime,
       phone: finalPhone,
+      ...(rescheduleBookingId ? { rescheduleBookingId } : {}),
     });
   };
 
