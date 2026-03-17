@@ -100,7 +100,13 @@ export async function createBooking(params: CreateBookingParams) {
       });
       if (oldBooking && oldBooking.status !== 'cancelled' && oldBooking.status !== 'completed') {
         if (oldBooking.yclientsRecordId) {
-          await yclients.deleteRecord(oldBooking.yclientsRecordId);
+          try {
+            await yclients.deleteRecord(oldBooking.yclientsRecordId);
+          } catch (delErr: any) {
+            const status = delErr?.response?.status || delErr?.status;
+            if (status !== 404) throw delErr;
+            log.info({ yclientsRecordId: oldBooking.yclientsRecordId }, 'Old YCLIENTS record already deleted');
+          }
         }
         await prisma.bookingLog.update({
           where: { id: params.rescheduleBookingId },
@@ -138,13 +144,14 @@ export async function getUserBookings(telegramId: number) {
 
       for (const booking of activeWithYclients) {
         const ycRecord = records.find((r: any) => r.id === booking.yclientsRecordId);
-        if (ycRecord && (ycRecord.deleted || ycRecord.attendance === -1)) {
+        // Not found = deleted from YCLIENTS, or found with deleted/attendance flags
+        if (!ycRecord || ycRecord.deleted || ycRecord.attendance === -1) {
           await prisma.bookingLog.update({
             where: { id: booking.id },
             data: { status: 'cancelled' },
           });
           booking.status = 'cancelled';
-          log.info({ bookingId: booking.id }, 'Booking synced as cancelled from YCLIENTS');
+          log.info({ bookingId: booking.id, found: !!ycRecord }, 'Booking synced as cancelled from YCLIENTS');
         }
       }
     } catch (err) {
@@ -179,9 +186,18 @@ export async function cancelBooking(bookingId: string, telegramId: number) {
     throw new Error('Cannot cancel less than 2 hours before the appointment');
   }
 
-  // Cancel in YCLIENTS
+  // Cancel in YCLIENTS (ignore 404 if already deleted by admin)
   if (booking.yclientsRecordId) {
-    await yclients.deleteRecord(booking.yclientsRecordId);
+    try {
+      await yclients.deleteRecord(booking.yclientsRecordId);
+    } catch (err: any) {
+      const status = err?.response?.status || err?.status;
+      if (status === 404) {
+        log.info({ bookingId, yclientsRecordId: booking.yclientsRecordId }, 'YCLIENTS record already deleted');
+      } else {
+        throw err;
+      }
+    }
   }
 
   // Update local DB

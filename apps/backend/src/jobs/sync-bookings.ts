@@ -35,11 +35,10 @@ export function startSyncBookingsJob() {
           (r: any) => r.id === booking.yclientsRecordId
         );
 
-        if (!ycRecord) continue;
-
         // Map YCLIENTS status to our status
         let newStatus: 'confirmed' | 'cancelled' | null = null;
-        if (ycRecord.deleted || ycRecord.attendance === -1) {
+        if (!ycRecord || ycRecord.deleted || ycRecord.attendance === -1) {
+          // Not found = deleted from YCLIENTS by admin
           newStatus = 'cancelled';
         } else if (ycRecord.confirmed === 1 && booking.status === 'pending') {
           newStatus = 'confirmed';

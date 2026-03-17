@@ -9,12 +9,16 @@ let bot: Bot | null = null;
 const isHttps = config.MINIAPP_URL.startsWith('https://');
 const isPublicUrl = isHttps && !config.MINIAPP_URL.includes('localhost');
 
+// Cache-busting: append version to force Telegram WebView to reload
+const APP_VERSION = '2';
+const miniAppUrl = `${config.MINIAPP_URL}${config.MINIAPP_URL.includes('?') ? '&' : '?'}v=${APP_VERSION}`;
+
 function webAppMarkup() {
   if (!isPublicUrl) return undefined;
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: 'Записаться', web_app: { url: config.MINIAPP_URL } }],
+        [{ text: 'Записаться', web_app: { url: miniAppUrl } }],
       ],
     },
   };
@@ -129,7 +133,7 @@ export async function sendCancellationNotice(telegramId: number, booking: {
     const markup = isPublicUrl ? {
       reply_markup: {
         inline_keyboard: [
-          [{ text: 'Записаться заново', web_app: { url: config.MINIAPP_URL } }],
+          [{ text: 'Записаться заново', web_app: { url: miniAppUrl } }],
         ],
       },
     } : undefined;
