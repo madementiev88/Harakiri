@@ -52,6 +52,13 @@ async function bootstrap() {
   await app.register(yclientsRoutes);
   await app.register(bookingRoutes);
 
+  // Temp debug endpoint — check raw master data from YCLIENTS
+  app.get('/api/debug/masters-raw', async () => {
+    const yclientsService = await import('./modules/yclients/yclients.service.js');
+    const raw = await yclientsService.getMasters();
+    return raw.map((m: any) => ({ id: m.id, name: m.name, bookable: m.bookable, fired: m.fired, hidden: m.hidden, status: m.status }));
+  });
+
   // Health check
   app.get('/health', async () => ({
     status: 'ok',
