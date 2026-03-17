@@ -2,7 +2,6 @@ import { prisma } from '../../lib/prisma.js';
 import { createModuleLogger } from '../../lib/logger.js';
 import * as yclients from '../yclients/yclients.service.js';
 import { getServiceDuration } from '../yclients/service-durations.js';
-import { sendBookingConfirmation, sendCancellationNotice } from '../notifications/notification.service.js';
 import { nowInTz, bookingToDate } from '../../lib/timezone.js';
 
 const log = createModuleLogger('booking');
@@ -90,6 +89,7 @@ export async function createBooking(params: CreateBookingParams) {
     bookingId: booking.id,
     masterId: params.masterId,
     yclientsRecordId: yclientsRecord.id,
+    rescheduleBookingId: params.rescheduleBookingId || null,
   }, 'Booking created');
 
   // Cancel old booking when rescheduling (skip 2-hour rule for reschedules)
@@ -113,33 +113,44 @@ export async function createBooking(params: CreateBookingParams) {
     }
   }
 
-  // Send confirmation notification (non-blocking)
-  let masterName = `Мастер #${params.masterId}`;
-  try {
-    const masters = await yclients.getMasters();
-    const master = masters.find((m: any) => m.id === params.masterId);
-    if (master?.name) masterName = master.name;
-  } catch {}
-
-  const servicesText = selectedServices.map((s: any) => s.name).join(', ');
-  sendBookingConfirmation(params.telegramId, {
-    masterName,
-    services: servicesText,
-    date: params.date,
-    time: params.time,
-    totalPrice,
-  }).catch((err) => log.error({ err }, 'Failed to send booking confirmation'));
+  // Уведомления от бота отключены — салон использует wahelp
+  // const servicesText = selectedServices.map((s: any) => s.name).join(', ');
+  // sendBookingConfirmation(params.telegramId, { ... });
 
   return { booking, yclientsRecordId: yclientsRecord.id };
 }
 
 export async function getUserBookings(telegramId: number) {
-  const now = new Date();
-
   const bookings = await prisma.bookingLog.findMany({
     where: { telegramId: BigInt(telegramId) },
     orderBy: { bookingDate: 'desc' },
   });
+
+  // Sync active bookings with YCLIENTS on-demand
+  const activeWithYclients = bookings.filter(
+    (b) => (b.status === 'pending' || b.status === 'confirmed') && b.yclientsRecordId
+  );
+
+  if (activeWithYclients.length > 0) {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const records = await yclients.getRecords({ startDate: today });
+
+      for (const booking of activeWithYclients) {
+        const ycRecord = records.find((r: any) => r.id === booking.yclientsRecordId);
+        if (ycRecord && (ycRecord.deleted || ycRecord.attendance === -1)) {
+          await prisma.bookingLog.update({
+            where: { id: booking.id },
+            data: { status: 'cancelled' },
+          });
+          booking.status = 'cancelled';
+          log.info({ bookingId: booking.id }, 'Booking synced as cancelled from YCLIENTS');
+        }
+      }
+    } catch (err) {
+      log.error({ err }, 'Failed to sync bookings on-demand');
+    }
+  }
 
   const active = bookings.filter(
     (b) => b.status === 'pending' || b.status === 'confirmed'
@@ -181,19 +192,8 @@ export async function cancelBooking(bookingId: string, telegramId: number) {
 
   log.info({ bookingId, telegramId }, 'Booking cancelled');
 
-  // Send cancellation notification (non-blocking)
-  let masterName = `Мастер #${booking.masterId}`;
-  try {
-    const masters = await yclients.getMasters();
-    const master = masters.find((m: any) => m.id === booking.masterId);
-    if (master?.name) masterName = master.name;
-  } catch {}
-
-  sendCancellationNotice(telegramId, {
-    masterName,
-    date: booking.bookingDate.toISOString().slice(0, 10),
-    time: booking.bookingTime,
-  }).catch((err) => log.error({ err }, 'Failed to send cancellation notice'));
+  // Уведомления от бота отключены — салон использует wahelp
+  // sendCancellationNotice(...);
 
   return updated;
 }
