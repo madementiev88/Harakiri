@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { createModuleLogger } from '../lib/logger.js';
 import { sendReminder } from '../modules/notifications/notification.service.js';
 import { nowInTz, toDateStringTz, bookingToDate } from '../lib/timezone.js';
+import * as yclients from '../modules/yclients/yclients.service.js';
 
 const log = createModuleLogger('jobs:reminders');
 
@@ -32,13 +33,20 @@ export function startReminderJobs() {
         include: { user: true },
       });
 
+      let masters: any[] = [];
+      if (bookings.length > 0) {
+        try { masters = await yclients.getMasters(); } catch {}
+      }
+
       for (const booking of bookings) {
         const bookingDateTime = bookingToDate(booking.bookingDate, booking.bookingTime);
         const hoursUntil = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
         if (hoursUntil <= 24 && hoursUntil > 2) {
+          const master = masters.find((m: any) => m.id === booking.masterId);
+          const masterName = master?.name || `Мастер #${booking.masterId}`;
           await sendReminder(Number(booking.telegramId), {
-            masterName: `\u041c\u0430\u0441\u0442\u0435\u0440 #${booking.masterId}`,
+            masterName,
             services: parseServices(booking.services),
             date: toDateStringTz(booking.bookingDate),
             time: booking.bookingTime,
@@ -73,13 +81,20 @@ export function startReminderJobs() {
         include: { user: true },
       });
 
+      let masters2h: any[] = [];
+      if (bookings.length > 0) {
+        try { masters2h = await yclients.getMasters(); } catch {}
+      }
+
       for (const booking of bookings) {
         const bookingDateTime = bookingToDate(booking.bookingDate, booking.bookingTime);
         const hoursUntil = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
         if (hoursUntil <= 2 && hoursUntil > 0) {
+          const master = masters2h.find((m: any) => m.id === booking.masterId);
+          const masterName = master?.name || `Мастер #${booking.masterId}`;
           await sendReminder(Number(booking.telegramId), {
-            masterName: `\u041c\u0430\u0441\u0442\u0435\u0440 #${booking.masterId}`,
+            masterName,
             services: parseServices(booking.services),
             date: toDateStringTz(booking.bookingDate),
             time: booking.bookingTime,

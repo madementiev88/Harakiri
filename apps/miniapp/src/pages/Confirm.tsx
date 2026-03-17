@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { createBooking } from '../api/queries';
+import { createBooking, cancelBooking } from '../api/queries';
 import { useBookingStore } from '../store/booking';
 import { useTelegram } from '../hooks/useTelegram';
 import PhoneInput from '../components/PhoneInput';
@@ -9,7 +9,7 @@ import { useToast } from '../components/Toast';
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
 export default function ConfirmPage() {
-  const { selectedMaster, cart, selectedDate, selectedTime, phone, setPhone, setStep, totalPrice, totalDuration } = useBookingStore();
+  const { selectedMaster, cart, selectedDate, selectedTime, phone, setPhone, setStep, totalPrice, totalDuration, rescheduleBookingId, setRescheduleBookingId } = useBookingStore();
   const { user, haptic, hapticSuccess, hapticError, showBackButton, hideMainButton, requestContact } = useTelegram();
   const toast = useToast();
   const [pdConsent, setPdConsent] = useState(false);
@@ -23,7 +23,16 @@ export default function ConfirmPage() {
 
   const mutation = useMutation({
     mutationFn: createBooking,
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Cancel old booking when rescheduling
+      if (rescheduleBookingId) {
+        try {
+          await cancelBooking(rescheduleBookingId);
+        } catch (err) {
+          // Old booking cancel failed, but new one is created
+        }
+        setRescheduleBookingId(null);
+      }
       hapticSuccess();
       setStep('success');
     },

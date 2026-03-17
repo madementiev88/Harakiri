@@ -195,6 +195,7 @@ export async function createRecord(params: {
     datetime: params.datetime,
     seance_length: seanceLength,
     save_if_busy: false,
+    send_sms: true,
     comment: params.comment || 'Запись через Telegram Mini App',
   };
 

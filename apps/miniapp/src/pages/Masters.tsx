@@ -102,7 +102,7 @@ export default function MastersPage() {
       {/* My bookings link */}
       <button
         onClick={() => setStep('mybookings')}
-        className="w-full mt-6 py-3 text-center text-harakiri-red text-sm font-medium active:opacity-70"
+        className="w-full mt-6 py-4 bg-harakiri-card rounded-2xl text-center text-harakiri-red text-base font-bold active:scale-[0.98] transition-transform"
       >
         Мои записи
       </button>

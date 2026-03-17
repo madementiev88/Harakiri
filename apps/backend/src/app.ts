@@ -76,11 +76,10 @@ async function bootstrap() {
   } else {
     log.warn('YCLIENTS tokens not set — sync job disabled');
   }
-  if (hasBotToken) {
-    startReminderJobs();
-  } else {
-    log.warn('BOT_TOKEN not set — reminder jobs disabled');
-  }
+  // Напоминания отключены — салон использует wahelp
+  // if (hasBotToken) {
+  //   startReminderJobs();
+  // }
 
   // Start server
   const port = parseInt(config.PORT, 10);
