@@ -87,5 +87,5 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   setRescheduleBookingId: (id) => set({ rescheduleBookingId: id }),
 
-  reset: () => set(initialState),
+  reset: () => set({ ...initialState, phone: get().phone }),
 }));

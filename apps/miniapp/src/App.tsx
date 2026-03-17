@@ -25,10 +25,15 @@ export default function App() {
 
     async function auth() {
       try {
+        let result;
         if (initData) {
-          await authenticate(initData);
+          result = await authenticate(initData);
         } else if (import.meta.env.DEV) {
-          await authenticate('dev');
+          result = await authenticate('dev');
+        }
+        // Pre-fill phone from saved user data
+        if (result?.user?.phone) {
+          useBookingStore.getState().setPhone(result.user.phone);
         }
       } catch (err) {
         console.error('Auth failed:', err);

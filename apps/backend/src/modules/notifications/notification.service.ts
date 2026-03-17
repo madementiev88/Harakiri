@@ -55,6 +55,17 @@ export function initBot(): Bot {
     );
   });
 
+  // Set menu button with cache-busting URL (overrides BotFather setting)
+  if (isPublicUrl) {
+    bot.api.setChatMenuButton({
+      menu_button: {
+        type: 'web_app',
+        text: 'Записаться',
+        web_app: { url: miniAppUrl },
+      },
+    }).catch((err) => log.error({ err }, 'Failed to set menu button'));
+  }
+
   return bot;
 }
 
